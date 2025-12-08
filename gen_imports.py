@@ -4,9 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from typing import Literal, TypedDict, cast
-
-type Action = Literal["create", "update", "delete", "no-op"]
+from typing import TypedDict, cast
 
 
 class ImportingDict(TypedDict):
@@ -20,7 +18,7 @@ class ContentDict(TypedDict):
 
 
 class ChangeDict(TypedDict):
-    actions: list[Action]
+    actions: list[str]
     before: ContentDict
     after: ContentDict | None
     importing: ImportingDict | None

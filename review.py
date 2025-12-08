@@ -4,9 +4,7 @@ from __future__ import annotations
 import json
 import sys
 from functools import cached_property
-from typing import Literal, TypedDict, cast, final
-
-type Action = Literal["create", "update", "delete", "no-op"]
+from typing import TypedDict, cast, final
 
 
 class ImportingDict(TypedDict):
@@ -19,7 +17,7 @@ class ContentDict(TypedDict):
 
 
 class ChangeDict(TypedDict):
-    actions: list[Action]
+    actions: list[str]
     before: ContentDict
     after: ContentDict
     importing: ImportingDict | None
@@ -62,7 +60,7 @@ class Resource:
         return self.data["change"]
 
     @cached_property
-    def action(self) -> Action:
+    def action(self) -> str:
         actions = self.change["actions"]
         return actions[0] if len(actions) == 1 else "no-op"
 
@@ -82,7 +80,7 @@ class Resource:
 
     @cached_property
     def is_import(self) -> bool:
-        if self.action != "update":
+        if self.action != "create" and self.action != "update":
             return False
         importing = self.change.get("importing")
         if importing is None:
@@ -135,11 +133,11 @@ class Resource:
                     print(f"  {self.pad(k)} : '{b}' -> '{a}'")
             case "delete":
                 print(f"{colors.RED}{self.address}{colors.END}")
-            case "no-op":
+            case _:
                 pass
 
 
-def filter_action(changes: list[Resource], a: Action):
+def filter_action(changes: list[Resource], a: str):
     """Exclude changes with action a"""
     return [res for res in changes if res.action != a]
 
@@ -170,9 +168,10 @@ def review(fabric: str):
         resources.append(res)
 
     all_updates = [res for res in resources if res.action == "update"]
-    imports = [res for res in all_updates if res.is_import]
+    all_creates = [res for res in resources if res.action == "create"]
+    imports = [res for res in all_updates + all_creates if res.is_import]
+    creates = [res for res in all_creates if not res.is_import]
     updates = [res for res in all_updates if not res.is_import]
-    creates = [res for res in resources if res.action == "create"]
     deletes = [res for res in resources if res.action == "delete"]
 
     if len(imports) > 0:
